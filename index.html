@@ -33,10 +33,10 @@
         let radius = 200;
         let lettersPadding = 10;
         let lettersSize = 20;
-        let lineWidthLimit = 10;
-        let lineMinWidth = 3;
+        let lineVariableLengthLimit = 40;
+        let lineSplitBaseLength = 5;
         let shadowBlur = 3;
-        let angleShiftAllowed = 0.2;
+        let angleShiftAllowed = 0.15;
         let angleShifted;
         let lineWidth = 2; // start value
         let maxLineWidth = 4;
@@ -98,9 +98,9 @@
 
         ctx.beginPath();
         ctx.lineJoin = 'round';
-        ctx.lineCap = 'round';
-        ctx.shadowBlur = shadowBlur;
-        ctx.shadowColor = shadowColor;
+        // ctx.lineCap = 'round';
+        // ctx.shadowBlur = shadowBlur;
+        // ctx.shadowColor = shadowColor;
 
         let allPoints = [];
 
@@ -126,7 +126,7 @@
 
             angle = angleBetween( currentPoint, nextPoint );
             length = getLength(nextPoint, currentPoint);
-            randomLength = lineMinWidth + Math.round( Math.random() * lineWidthLimit );
+            randomLength = lineSplitBaseLength + Math.round( Math.random() * lineVariableLengthLimit );
             randomLength = Math.min( length, randomLength );
 
             // angleShifted = angle + (Math.random() * angleShiftAllowed - angleShiftAllowed/2);
