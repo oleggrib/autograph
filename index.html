@@ -1,0 +1,230 @@
+<!DOCTYPE html>
+<html>
+ <head>
+  <meta charset="utf-8"/>
+  <script type="application/javascript">
+    function getLength(p1,p2){
+      return Math.sqrt((p1.x-p2.x)*(p1.x-p2.x) + (p1.y-p2.y)*(p1.y-p2.y));
+    }
+    function distanceBetween(point1, point2) {
+      return Math.sqrt(Math.pow(point2.x - point1.x, 2) + Math.pow(point2.y - point1.y, 2));
+    }
+    function angleBetween(point1, point2) {
+      // return Math.atan2( point2.x - point1.x, point2.y - point1.y );
+      return Math.atan2( point2.y - point1.y, point2.x - point1.x );
+    }
+    function midPointBtw(p1, p2) {
+      return {
+        x: p1.x + (p2.x - p1.x) / 2,
+        y: p1.y + (p2.y - p1.y) / 2
+      };
+    }
+    function draw() {
+      var canvas = document.getElementById('canvas');
+      if (canvas.getContext) {
+        var ctx = canvas.getContext('2d');
+        // ctx.scale(2,2);
+
+        ctx.fillStyle = 'rgb(222,222, 222)';
+        ctx.fillRect(0, 0, 500, 500);
+
+        let centerX = 220;
+        let centerY = 220;
+        let radius = 200;
+        let lettersPadding = 10;
+        let lettersSize = 20;
+        let lineWidthLimit = 10;
+        let lineMinWidth = 3;
+        let shadowBlur = 3;
+        let angleShiftAllowed = 0.2;
+        let angleShifted;
+        let lineWidth = 2; // start value
+        let maxLineWidth = 4;
+        let minLineWidth = 2;
+        let maxWidthShift = 0.8
+        let shadowColor = 'rgb(0, 0, 0)';
+        let letters = " ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+        let digits = "0123456789";
+        let textToRender = "King Midas";
+
+        ctx.beginPath();
+        ctx.arc(centerX, centerY, radius, 0, Math.PI * 2, true); // Outer circle
+
+        ctx.moveTo(centerX + radius - lettersSize - lettersPadding * 2, centerY);
+        ctx.arc(centerX, centerY, radius - lettersSize - lettersPadding * 2, 0, Math.PI * 2, true); // Outer circle
+        ctx.stroke();
+
+        ctx.font = lettersSize + 'px/'+lettersSize+'px Times New Roman';
+        ctx.fillStyle = 'rgba(33, 33, 33, 1)';
+        
+
+        let letterCoords = {};
+        // display letters
+        for (var i = 0; i < letters.length; i++) {
+          let letter = letters.charAt(i);
+          let angle = Math.PI * 2 / letters.length * i - Math.PI / 2;
+
+          var w = ctx.measureText(letter).width;
+
+          let metrics = ctx.measureText(letter);
+          let fontHeight = metrics.fontBoundingBoxAscent + metrics.fontBoundingBoxDescent;
+          let actualHeight = metrics.actualBoundingBoxAscent + metrics.actualBoundingBoxDescent;
+          letterCoords[letter] = {
+            x: Math.cos(angle) * (radius - lettersSize/2 - lettersPadding ) + centerX,
+            y: Math.sin(angle) * (radius - lettersSize/2 - lettersPadding ) + centerY
+          }
+          ctx.fillText(letter, letterCoords[letter].x - w/2, letterCoords[letter].y + actualHeight/2);
+
+        }
+
+        // display digits
+        for (var i = 0; i < digits.length; i++) {
+          let letter = digits.charAt(i);
+          let angle = Math.PI * 2 / digits.length * i - Math.PI / 2;
+
+          var w = ctx.measureText(letter).width;
+
+          let metrics = ctx.measureText(letter);
+          let fontHeight = metrics.fontBoundingBoxAscent + metrics.fontBoundingBoxDescent;
+          let actualHeight = metrics.actualBoundingBoxAscent + metrics.actualBoundingBoxDescent;
+
+          letterCoords[letter] = {
+            x: Math.cos(angle) * (radius - lettersSize * 1.5 - lettersPadding * 3 ) + centerX,
+            y: Math.sin(angle) * (radius - lettersSize * 1.5 - lettersPadding * 3 ) + centerY
+          }
+          ctx.fillText(letter, letterCoords[letter].x - w/2, letterCoords[letter].y + actualHeight/2);
+
+        }
+
+        ctx.beginPath();
+        ctx.lineJoin = 'round';
+        ctx.lineCap = 'round';
+        ctx.shadowBlur = shadowBlur;
+        ctx.shadowColor = shadowColor;
+
+        let allPoints = [];
+
+        // get points
+        for (var i = 0; i < textToRender.length; i++) {
+          let letter = textToRender.charAt(i).toUpperCase();
+          allPoints.push({x:letterCoords[letter].x, y:letterCoords[letter].y});
+        }
+
+        // slice lines to short lines
+        let prevPoint = allPoints[0];
+        let slicedLinePoints = [prevPoint];
+
+        for (var i = 1; i < allPoints.length; i++) {
+          let nextPoint = allPoints[i];
+          let currentPoint = prevPoint;
+          let length;
+          let angle = angleBetween( currentPoint, nextPoint );
+          let randomLength;
+          let counter = 0;
+
+          do {
+
+            angle = angleBetween( currentPoint, nextPoint );
+            length = getLength(nextPoint, currentPoint);
+            randomLength = lineMinWidth + Math.round( Math.random() * lineWidthLimit );
+            randomLength = Math.min( length, randomLength );
+
+            // angleShifted = angle + (Math.random() * angleShiftAllowed - angleShiftAllowed/2);
+            angleShifted = angle + Math.random() * angleShiftAllowed * ((i % 2) ? 1 : -1 );
+
+            currentPoint = {
+              x: Math.cos(angleShifted) * randomLength + currentPoint.x,
+              y: Math.sin(angleShifted) * randomLength + currentPoint.y
+            }
+           
+            slicedLinePoints.push(currentPoint);
+            // avoid infinity loop
+            counter++;
+
+          } while ( length > randomLength && counter < 1000);
+          
+          prevPoint = nextPoint;       
+        }
+
+
+        let lineWidthShift;
+        // draw all spliced lines with quadraticCurveTo
+        for (var i = 1; i < slicedLinePoints.length; i++) {
+          let point = slicedLinePoints[i];
+
+          lineWidthShift = Math.random() * maxWidthShift - maxWidthShift/2 ;
+          lineWidth += lineWidthShift;
+
+          if (lineWidth > maxLineWidth) {
+            lineWidth = maxLineWidth ;
+          } else if (lineWidth < minLineWidth) {
+            lineWidth = minLineWidth ;
+          } 
+          
+          ctx.beginPath();
+          ctx.moveTo(slicedLinePoints[i-1].x, slicedLinePoints[i-1].y);
+          ctx.lineWidth = lineWidth;
+          // ctx.lineTo(slicedLinePoints[i].x, slicedLinePoints[i].y);
+          let centralPoint = midPointBtw(slicedLinePoints[i-1], slicedLinePoints[i]);
+          ctx.quadraticCurveTo(
+            centralPoint.x,
+            centralPoint.y,
+            slicedLinePoints[i].x, slicedLinePoints[i].y
+          );
+
+          ctx.stroke();
+        }
+
+        // ctx.stroke();
+       
+       // download png image
+        // var link = document.createElement('a');
+        // link.setAttribute('download', 'autograph.png');
+        // link.setAttribute('href', canvas.toDataURL("image/png").replace("image/png", "image/octet-stream"));
+        // link.click();
+
+        imageLoader.addEventListener('change', handleImage, false);
+
+        function handleImage(e){
+            var reader = new FileReader();
+            reader.onload = function(event){
+                var img = new Image();
+                img.onload = function(){
+                  let canvasW = canvas.width;
+                  let canvasH = canvas.height;
+                  let imageW = img.width;
+                  let imageH = img.height;
+                  let ratio = Math.min(imageW / canvasW, imageH / canvasH);
+                    // canvas.width = img.width;
+                    // canvas.height = img.height;
+                    ctx.drawImage(img,0,0, imageW / ratio, imageH / ratio);
+
+
+                    ctx.beginPath();
+                    ctx.lineWidth = 3;
+                    ctx.strokeStyle = "#FF0000";
+                    for (var i = 0; i < textToRender.length; i++) {
+                      let letter = textToRender.charAt(i).toUpperCase();
+                      if (i) {
+                        ctx.lineTo(letterCoords[letter].x, letterCoords[letter].y);
+                      } else {
+                        ctx.moveTo(letterCoords[letter].x, letterCoords[letter].y);
+                      }
+                    }
+                    ctx.stroke();
+
+                }
+                img.src = event.target.result;
+            }
+            reader.readAsDataURL(e.target.files[0]);     
+        }
+      }
+    }
+  </script>
+ </head>
+ <body onload="draw();">
+     <canvas id="canvas" width="500" height="500"></canvas>
+     <label>Image File:</label><br/>
+    <input type="file" id="imageLoader" name="imageLoader"/>
+ </body>
+</html>
